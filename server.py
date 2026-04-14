@@ -83,33 +83,25 @@ class MaxMSPConnection:
 
 @asynccontextmanager
 async def server_lifespan(server: FastMCP):
-    """Manage server lifespan"""
-    global io_server_started
-    if not io_server_started:
-        try:
-            maxmsp = MaxMSPConnection(
-                SOCKETIO_SERVER_URL, SOCKETIO_SERVER_PORT, NAMESPACE
-            )
-            try:
-                # Start the Socket.IO server
-                await maxmsp.start_server()
-                io_server_started = True
-                logging.info(f"Listening on {maxmsp.server_url}:{maxmsp.server_port}")
-
-                # Yield the Socket.IO connection to make it available in the lifespan context
-                yield {"maxmsp": maxmsp}
-            except Exception as e:
-                logging.error(f"lifespan error starting server: {e}")
-                await maxmsp.sio.disconnect()
-                raise
-
-        finally:
-            logging.info("Shutting down connection")
-            await maxmsp.sio.disconnect()
-    else:
-        logging.info(
-            f"IO server already running on {maxmsp.server_url}:{maxmsp.server_port}"
+    """Manage server lifespan - starts even without MaxMSP running"""
+    maxmsp = None
+    try:
+        maxmsp = MaxMSPConnection(
+            SOCKETIO_SERVER_URL, SOCKETIO_SERVER_PORT, NAMESPACE
         )
+        await maxmsp.start_server()
+        logging.info(f"Connected to MaxMSP at {maxmsp.server_url}:{maxmsp.server_port}")
+    except Exception as e:
+        logging.error(f"Could not connect to MaxMSP: {e}")
+        logging.warning("MCP server starting without MaxMSP connection - tools will fail until Max is running")
+        maxmsp = None
+
+    try:
+        yield {"maxmsp": maxmsp}
+    finally:
+        if maxmsp is not None:
+            logging.info("Shutting down MaxMSP connection")
+            await maxmsp.sio.disconnect()
 
 
 # Create the MCP server with lifespan support
