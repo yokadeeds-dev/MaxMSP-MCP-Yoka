@@ -1,59 +1,121 @@
-# MaxMSP-MCP Server
+# MaxMSP-MCP-Yoka
 
-This project uses the [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) to let LLMs directly understand and generate Max patches.
+A Max/MSP MCP server for LLM-driven patch creation and control — built on top of the open-source [MaxMSP-MCP-Server](https://github.com/tiianhk/MaxMSP-MCE-Server) by tiianhk, extended and restructured as the foundation of a larger AI-to-Max framework.
+
+> **Status:** The core MCP tools work out of the box for basic patch manipulation. The architecture is actively being rebuilt and extended — the full framework layer is what enables reliable, intelligent operation across complex, multi-patch setups.
+
+---
+
+## What this does
+
+This MCP server lets LLMs (like Claude) interact directly with a running Max 9 session: create and connect objects, inspect patches, read documentation, send messages and bangs — all through natural language.
+
+### Current tools
+- Add, remove, and connect Max objects in a live patch
+- Get and set object attributes and parameters
+- Look up official Max documentation per object
+- Send bangs and messages to objects
+- Inspect patch contents and subpatch windows
+
+---
+
+## Why a fork?
+
+The original server is a clean proof-of-concept for simple, single-patch demos. This fork extends it with stability improvements and prepares the architecture for the framework:
+
+- **Resilient startup** — the MCP server connects to Claude Desktop even when Max is not yet running; individual tool calls fail gracefully instead of crashing the server
+- **Improved error handling** — lifespan management and connection recovery
+- **Framework-ready structure** — the codebase is being restructured to support the full AI-to-Max workflow described below
+
+---
+
+## The bigger picture: AI-to-Max Framework
+
+This server is the entry point for a framework currently under development. The framework is what makes the system reliable and musically intelligent for **complex setups** — things the raw MCP alone cannot handle:
+
+- Multi-patch sessions with interdependent synthesis modules
+- Generative FM architectures (like the Posford Machine) with real-time parameter control
+- AI-assisted composition with MIDI, audio routing, and modular signal flow
+- Intelligent patch generation from high-level musical descriptions
+
+### What the framework adds (roadmap)
+
+- **Patch context awareness** — understanding the full signal graph, not just individual objects
+- **Semantic object relationships** — knowing how modules connect musically, not just technically
+- **Multi-agent coordination** — specialized agents for synthesis, effects, routing, and performance
+- **State memory** — persistent knowledge of patch configurations and session history
+- **Complex setup support** — reliable operation across multi-window, multi-instrument, live-performance environments
+
+---
+
+## Installation
+
+### Prerequisites
+
+- Python 3.8 or newer
+- Max 9 or newer
+- Claude Desktop (or any MCP-compatible client)
+
+### Setup
+
+**1. Clone this repository:**
+```
+git clone https://github.com/yokadeeds-dev/MaxMSP-MCP-Yoka.git
+cd MaxMSP-MCP-Yoka
+```
+
+**2. Create a virtual environment and install dependencies:**
+```
+python -m venv .venv
+
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+**3. Add to your Claude Desktop config** (`claude_desktop_config.json`):
+```json
+"MaxMSPMCP": {
+  "command": "C:\\path\\to\\MaxMSP-MCP-Yoka\\.venv\\Scripts\\mcp.exe",
+  "args": ["run", "C:\\path\\to\\MaxMSP-MCP-Yoka\\server.py"],
+  "env": {
+    "VIRTUAL_ENV": "C:\\path\\to\\MaxMSP-MCP-Yoka\\.venv",
+    "PATH": "C:\\path\\to\\MaxMSP-MCP-Yoka\\.venv\\Scripts"
+  }
+}
+```
+
+**4. Open the Max companion patch** from `MaxMSP_Agent/demo.maxpat`:
+- In the first tab, click `script npm version` to verify npm is installed
+- Click `script npm install` to install dependencies
+- Switch to the second tab and click `script start` to initiate the Socket.IO connection
+
+**5. Restart Claude Desktop** — the MaxMSP tools will appear automatically.
+
+---
+
+## Demo
 
 ### Understand: LLM Explaining a Max Patch
 
 ![img](./assets/understand.gif)
-[Video link](https://www.youtube.com/watch?v=YKXqS66zrec). Acknowledgement: the patch being explained is downloaded from [here](https://github.com/jeffThompson/MaxMSP_TeachingSketches/blob/master/02_MSP/07%20Ring%20Modulation.maxpat). Text comments in the original file are deleted.
+
+[Video link](https://www.youtube.com/watch?v=YKXq566zrec). Acknowledgement: the patch being explained is downloaded from [here](https://github.com/jeffThompson/MaxMSP_TeachingSketches/blob/master/02_MSP/07%20Ring%20Modulation.maxpat). Text comments in the original file are deleted.
 
 ### Generate: LLM Making an FM Synth
 
 ![img](./assets/generate.gif)
-Check out the [full video](https://www.youtube.com/watch?v=Ns89YuE5-to) where you can listen to the synthesised sounds.
 
-The LLM agent has access to the official documentation of each object, as well as objects in the current patch and subpatch windows, which helps in retrieving and explaining objects, debugging, and verifying their own actions.
+Check out the [full video](https://www.youtube.com/watch?v=Ns89YuE5-to) to listen to the synthesized sounds.
 
-## Installation  
+---
 
-### Prerequisites  
+## Credits
 
- - Python 3.8 or newer  
- - [uv package manager](https://github.com/astral-sh/uv)  
- - Max 9 or newer (because some of the scripts require the Javascript V8 engine), we have not tested it on Max 8 or earlier versions of Max yet.  
-
-### Installing the MCP server
-
-1. Install uv:
-```
-# On macOS and Linux:
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# On Windows:
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-2. Clone this repository and open its directory:
-```
-git clone https://github.com/tiianhk/MaxMSP-MCP-Server.git
-cd MaxMSP-MCP-Server
-```
-3. Start a new environment and install python dependencies:
-```
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-```
-4. Connect the MCP server to a MCP client (which hosts LLMs):
-```
-# Claude:
-python install.py --client claude
-# or Cursor:
-python install.py --client cursor
-```
-To use other clients (check the [list](https://modelcontextprotocol.io/clients)), you need to download, mannually add the configuration file path to [here](https://github.com/tiianhk/MaxMSP-MCP-Server/blob/main/install.py#L6-L13), and connect by running `python install.py --client {your_client_name}`.
-
-### Installing to a Max patch  
-
-Use or copy from `MaxMSP_Agent/demo.maxpat`. In the first tab, click the `script npm version` message to verify that [npm](https://github.com/npm/cli) is installed. Then click `script npm install` to install the required dependencies. Switch to the second tab to access the agent. Click `script start` to initiate communication with Python. Once connected, you can interact with the LLM interface to have it explain, modify, or create Max objects within the patch.
+Based on [MaxMSP-MCP-Server](https://github.com/tiianhk/MaxMSP-MCE-Server) by tiianhk. Extended and maintained as part of the Yoka AI-to-Max framework.
 
 ## Disclaimer
 
